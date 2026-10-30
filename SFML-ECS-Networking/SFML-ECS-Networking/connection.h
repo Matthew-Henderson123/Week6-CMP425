@@ -56,11 +56,6 @@ struct Connection
 		sf::Vector2f acceleration;
 		float predictedTime;
 
-		if (message_history.size() > 2)
-		{
-			predictedTime = message_history[2].time - message_history[1].time;
-		}
-
 		switch (method)
 		{
 		case(None):
@@ -70,6 +65,7 @@ struct Connection
 		case(Linear):
 			if (message_history.size() > 2)
 			{
+				predictedTime = message_history[2].time - message_history[1].time;
 				velocity = (message_history[2].position - message_history[1].position) / dt;
 
 				predictedPos = message_history[2].position + velocity * predictedTime;
@@ -80,6 +76,7 @@ struct Connection
 		case(Quadratic):
 			if (message_history.size() > 3)
 			{
+				predictedTime = message_history[3].time - message_history[2].time;
 				velocity1 = (message_history[1].position - message_history[0].position) / dt;
 				velocity2 = (message_history[2].position - message_history[1].position) / dt;
 				acceleration = (velocity2 - velocity1) / dt;
@@ -91,5 +88,42 @@ struct Connection
 		}
 
 		return message_history[0].position;
+	}
+
+	void PredictionVoid(float dt, PredictionMethod method)
+	{
+		sf::Vector2f velocity;
+		sf::Vector2f velocity1;
+		sf::Vector2f velocity2;
+		sf::Vector2f acceleration;
+		float predictedTime;
+
+		switch (method)
+		{
+		case(None):
+			break;
+
+		case(Linear):
+			if (message_history.size() > 2)
+			{
+				predictedTime = message_history[2].time - message_history[1].time;
+				velocity = (message_history[2].position - message_history[1].position) / dt;
+
+				message_history[2].position = message_history[2].position + velocity * predictedTime;
+			}
+			break;
+
+		case(Quadratic):
+			if (message_history.size() > 3)
+			{
+				predictedTime = message_history[3].time - message_history[2].time;
+				velocity1 = (message_history[1].position - message_history[0].position) / dt;
+				velocity2 = (message_history[2].position - message_history[1].position) / dt;
+				acceleration = (velocity2 - velocity1) / dt;
+
+				message_history[3].position = message_history[3].position + velocity2 * predictedTime + 0.5f * acceleration * predictedTime * predictedTime;
+			}
+			break;
+		}
 	}
 };

@@ -230,9 +230,12 @@ int main() {
 					Utils::printMsg("dt = " + std::to_string(dt) + ", Inter t = " + std::to_string(player_connections[i].inter_t), MessageType::info);
 #endif // DEBUG
 					// Get actual position based on interpolation method.
+					
+					player_connections[i].Prediction(dt, Quadratic);
+
 					sf::Vector2f interpolated_pos = player_connections[i].Interpolate(dt);
 
-					interpolated_pos = player_connections[i].Prediction(dt, Quadratic);
+					//sf::Vector2f predicted_pos = player_connections[i].Prediction(dt, Quadratic);
 
 					// Construct message with actual positon.
 					TankMessage interpolated_msg = {
