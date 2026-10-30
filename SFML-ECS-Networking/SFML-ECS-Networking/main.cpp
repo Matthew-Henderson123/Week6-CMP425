@@ -232,6 +232,8 @@ int main() {
 					// Get actual position based on interpolation method.
 					sf::Vector2f interpolated_pos = player_connections[i].Interpolate(dt);
 
+					interpolated_pos = player_connections[i].Prediction(dt, Quadratic);
+
 					// Construct message with actual positon.
 					TankMessage interpolated_msg = {
 						game_time,

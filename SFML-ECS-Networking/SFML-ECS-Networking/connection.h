@@ -46,4 +46,50 @@ struct Connection
 		else
 			return message_history[0].position; // Just return the last known position.
 	}
+
+	sf::Vector2f Prediction(float dt, PredictionMethod method)
+	{
+		sf::Vector2f predictedPos;
+		sf::Vector2f velocity;
+		sf::Vector2f velocity1;
+		sf::Vector2f velocity2;
+		sf::Vector2f acceleration;
+		float predictedTime;
+
+		if (message_history.size() > 2)
+		{
+			predictedTime = message_history[2].time - message_history[1].time;
+		}
+
+		switch (method)
+		{
+		case(None):
+			return message_history[0].position;
+			break;
+
+		case(Linear):
+			if (message_history.size() > 2)
+			{
+				velocity = (message_history[2].position - message_history[1].position) / dt;
+
+				predictedPos = message_history[2].position + velocity * predictedTime;
+				return predictedPos;
+			}
+			break;
+
+		case(Quadratic):
+			if (message_history.size() > 3)
+			{
+				velocity1 = (message_history[1].position - message_history[0].position) / dt;
+				velocity2 = (message_history[2].position - message_history[1].position) / dt;
+				acceleration = (velocity2 - velocity1) / dt;
+
+				predictedPos = message_history[3].position + velocity2 * predictedTime + 0.5f * acceleration * predictedTime * predictedTime;
+				return predictedPos;
+			}
+			break;
+		}
+
+		return message_history[0].position;
+	}
 };
