@@ -7,7 +7,7 @@
 #include "connection.h"
 
 /* Uncomment to enable debug messages. */
-//#define DEBUG
+#define DEBUG
 
 /*
  This is a modified version of Lab 5 game, which now includes message history for each connection and
@@ -89,7 +89,7 @@ int main() {
 	// Other game parameters.
 	float send_rate = 0.1f;
 	float reconnect_delay = 1.f;
-	float send_timer = 1.f;
+	float send_timer = 0.5f;
 	bool is_connected = false;
 
 	// Selector for handling multiple connections (Observer only).
