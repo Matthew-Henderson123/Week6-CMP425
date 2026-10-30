@@ -1,3 +1,6 @@
+Matthew Henderson
+2301614
+
 CMP425 / CMP501 
 Lab 6: position interpolation example - by Andrei Boiko
 Built using SFML 3
