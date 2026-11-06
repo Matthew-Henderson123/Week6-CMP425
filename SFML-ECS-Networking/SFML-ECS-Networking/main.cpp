@@ -80,17 +80,22 @@ int main() {
 	sf::Clock clock;
 	float game_time = 0;
 
-
 	// Game object.
 	Game game;
 	// Container of player connections for Observer.
 	std::vector<Connection> player_connections;
 
 	// Other game parameters.
-	float send_rate = 0.1f;
+	float send_rate = 0.5f;
 	float reconnect_delay = 1.f;
-	float send_timer = 0.5f;
+	float send_timer = 1.f;
 	bool is_connected = false;
+
+	//Measuring Latency
+	float average_times = 0;
+	std::vector<float> times;
+
+	float latency = 0;
 
 	// Selector for handling multiple connections (Observer only).
 	sf::SocketSelector selector;
@@ -186,7 +191,7 @@ int main() {
 						// Read recieved data into TankMessage struct.
 						// FIXME: reading from packet can fail. Refer to documentation on how to
 						// handle errors and add error checking here.
-						packet >> message.time >> message.position.x >> message.position.y;
+						packet >> message.time >> message.position.x >> message.position.y >> latency;
 
 						player_connections[i].inter_t = 0.f; // reset interpolation t value when we get a new message
 
@@ -227,13 +232,13 @@ int main() {
 				// NOTE: Moved player update here, as we want to update every time, not just when we recieve messages.
 				if (!player_connections[i].message_history.empty()) {
 #ifdef DEBUG
-					Utils::printMsg("dt = " + std::to_string(dt) + ", Inter t = " + std::to_string(player_connections[i].inter_t), MessageType::info);
+					Utils::printMsg("dt = " + std::to_string(latency) + ", Inter t = " + std::to_string(player_connections[i].inter_t), MessageType::info);
 #endif // DEBUG
 					// Get actual position based on interpolation method.
-					
-					player_connections[i].Prediction(dt, Quadratic);
 
-					sf::Vector2f interpolated_pos = player_connections[i].Interpolate(dt);
+					player_connections[i].Prediction(latency, Quadratic);
+
+					sf::Vector2f interpolated_pos = player_connections[i].Interpolate(latency);
 
 					//sf::Vector2f predicted_pos = player_connections[i].Prediction(dt, Quadratic);
 
@@ -257,8 +262,26 @@ int main() {
 				// SFML TCP sockets are fiddly when it comes to non-blocking connect calls,
 				// we could specify a very small delay timeout in the blocking mode, but this would cause lag while it tries.
 				// Ideally, we just handle connection in blocking mode, and wait for a successful connection before we continue.
+
+				//auto t1 = std::chrono::high_resolution_clock::now();
+
+				sf::Time t1 = clock.getElapsedTime();
+
 				sf::Socket::Status status = player_socket->connect(sf::IpAddress::LocalHost, observer_port);
 				if (status == sf::Socket::Status::Done) {
+					//auto t2 = std::chrono::high_resolution_clock::now();
+
+					//std::chrono::duration<float, std::milli> elapsed_seconds = t2 - t1;
+					//times.push_back(elapsed_seconds.count());
+
+					sf::Time t2 = clock.getElapsedTime();
+
+					float seconds = t2.asSeconds() - t1.asSeconds();
+
+					Utils::printMsg(std::to_string(seconds), MessageType::error);
+
+					times.push_back(seconds);
+
 					Utils::printMsg("Connected!", MessageType::success);
 					is_connected = true;
 					// Add new tank with blue body and black barrel at the centre of the window.
@@ -273,17 +296,45 @@ int main() {
 				game.Update(dt);
 				// Get data structure from game, containing update message.
 				TankMessage message = game.GetNetworkUpdate();
+
+				for (auto temp : times)
+				{
+					average_times += temp;
+				}
+
+				average_times /= times.size();
 				// Add current game time to the message
 				message.time = game_time;
 				// Translate our messgage struct to sf::Packet (very rudimentary conversion).
-				packet << message.time << message.position.x << message.position.y;
+				packet << message.time << message.position.x << message.position.y << average_times;
 
 				// Send messages only as often as the send rate allows.
 				if (send_timer >= send_rate) {
+					//auto t1 = std::chrono::high_resolution_clock::now();
+
+					sf::Time t1 = clock.getElapsedTime();
+
 					sf::Socket::Status status = player_socket->send(packet);
 					// FIXME: Send can fail, check for errors and adjust logic accordingly.
 					if (status == sf::Socket::Status::Done) {
 #ifdef DEBUG
+						//auto t2 = std::chrono::high_resolution_clock::now();
+
+						//std::chrono::duration<float, std::milli> elapsed_seconds = t2 - t1;
+
+						//times.push_back(elapsed_seconds.count());
+
+
+						sf::Time t2 = clock.getElapsedTime();
+
+						float seconds = t2.asSeconds() - t1.asSeconds();
+
+						Utils::printMsg(std::to_string(t1.asSeconds()), MessageType::error);
+						Utils::printMsg(std::to_string(t2.asSeconds()), MessageType::error);
+						Utils::printMsg(std::to_string(seconds), MessageType::error);
+
+						times.push_back(seconds);
+
 						Utils::printMsg("Sent message to: "
 							+ player_socket->getRemoteAddress().value().toString()
 							+ ":"
@@ -295,6 +346,11 @@ int main() {
 					}
 					// Reset timer after sending the message
 					send_timer = 0;
+
+					if (times.size() > 4)
+					{
+						times.erase(times.begin());
+					}
 				}
 			}
 		}
